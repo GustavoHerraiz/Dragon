@@ -1,0 +1,66 @@
+{"level":"info","message":"📢 Iniciando análisis OpenCV..."}
+{"level":"info","message":"📢 Procesando bordes con el detector Canny..."}
+{"level":"info","message":"📢 Analizando contornos..."}
+{"level":"error","message":"❌ Error en análisis OpenCV: cv.findContours is not a function"}
+{"level":"info","message":"📢 Iniciando análisis OpenCV..."}
+{"level":"info","message":"📢 Procesando bordes con el detector Canny..."}
+{"level":"info","message":"📢 Analizando contornos..."}
+{"level":"error","message":"❌ Error en análisis OpenCV: cv.findContours is not a function"}
+{"level":"info","message":"📢 Iniciando análisis OpenCV..."}
+{"level":"info","message":"📢 Procesando bordes con el detector Canny..."}
+{"level":"info","message":"📢 Analizando contornos..."}
+{"level":"info","message":"📢 Calculando gradientes y texturas..."}
+{"level":"error","message":"❌ Error en análisis OpenCV: sobelX.hypot is not a function"}
+{"level":"info","message":"📢 Iniciando análisis OpenCV..."}
+{"level":"info","message":"📢 Procesando bordes con el detector Canny..."}
+{"level":"info","message":"📢 Analizando contornos..."}
+{"level":"info","message":"📢 Calculando gradientes y texturas..."}
+{"level":"info","message":"📢 Calculando histograma..."}
+{"level":"error","message":"❌ Error en análisis OpenCV: grayImage.calcHist is not a function"}
+{"level":"info","message":"📢 Iniciando análisis OpenCV..."}
+{"level":"info","message":"📢 Procesando bordes con el detector Canny..."}
+{"level":"info","message":"📢 Analizando contornos..."}
+{"level":"info","message":"📢 Calculando gradientes y texturas..."}
+{"level":"info","message":"📢 Calculando histograma..."}
+{"level":"error","message":"❌ Error en análisis OpenCV: gradientsMagnitude.stdDev is not a function"}
+{"level":"info","message":"📢 Iniciando análisis OpenCV..."}
+{"level":"info","message":"📢 Procesando bordes con el detector Canny..."}
+{"level":"info","message":"📢 Analizando contornos..."}
+{"level":"info","message":"📢 Calculando gradientes y texturas..."}
+{"level":"info","message":"📢 Calculando histograma..."}
+{"level":"error","message":"❌ Error en análisis OpenCV: gradientsMagnitude.stdDev is not a function"}
+{"level":"info","message":"📢 Iniciando análisis OpenCV..."}
+{"level":"info","message":"📢 Procesando bordes con el detector Canny..."}
+{"level":"info","message":"📢 Analizando contornos..."}
+{"level":"info","message":"📢 Calculando gradientes y texturas..."}
+{"level":"error","message":"❌ Error en análisis OpenCV: sobelX.hypot is not a function"}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}
+{"level":"info","message":"📂 Iniciando análisis estructural con OpenCV..."}
+{"level":"error","message":"❌ Error en analizador_opencv: gradients[0].hypot is not a function"}
+{"level":"info","message":"🧹 Recursos de OpenCV liberados."}

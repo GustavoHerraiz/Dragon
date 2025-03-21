@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "fft-js": "^0.0.12",
+    "jimp": "^1.6.0",
+    "opencv4nodejs-prebuilt-install": "^4.1.209"
+  }
+}

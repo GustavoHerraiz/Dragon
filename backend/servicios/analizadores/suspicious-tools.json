@@ -1,0 +1,11 @@
+[
+    "adobe\\s*photoshop\\s*(?:cc|202[1-4])?",
+    "midjourney\\s*v?\\d+",
+    "stablediffusion\\s*[2-3]?.?x",
+    "dall-e\\s*3",
+    "nightcafe",
+    "deepai",
+    "runwayml",
+    "leonardo\\.ai",
+    "dreamstudio"
+]
