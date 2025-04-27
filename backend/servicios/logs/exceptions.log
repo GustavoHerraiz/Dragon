@@ -1,0 +1,111 @@
+2025-03-23T16:26:57.390Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:48
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2025-03-23T16:31:57.627Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:48
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2025-03-23T16:34:23.819Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:48
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2025-03-23T16:38:24.406Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:48
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2025-03-23T16:49:07.290Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:48
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2025-03-23T17:08:11.873Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:48
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2025-03-23T17:28:32.810Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:48
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2025-03-23T19:01:34.628Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:48
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at Socket.<anonymous> (node:internal/child_process:456:11)
+    at Socket.emit (node:events:518:28)
+2025-03-23T19:27:29.465Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:195:32
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2025-03-23T19:36:35.306Z [ERROR]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:655:11)
+    at ServerResponse.header (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/var/www/ProyectoDragon/backend/node_modules/express/lib/response.js:278:15)
+    at file:///var/www/ProyectoDragon/backend/server.js:196:32
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)

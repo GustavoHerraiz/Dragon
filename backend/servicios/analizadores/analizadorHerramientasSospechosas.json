@@ -1,0 +1,53 @@
+{
+    "softwareEdicion": [
+        "adobe\\s*photoshop\\s*(?:cc|elements|express|202[1-4])?",
+        "adobe\\s*lightroom(?:\\s*classic|\\s*mobile)?",
+        "gimp",
+        "coreldraw",
+        "paint\\.net",
+        "affinity\\s*photo",
+        "affinity\\s*designer",
+        "krita",
+        "pixelmator",
+        "canva",
+        "procreate",
+        "capture\\s*one",
+        "luminar",
+        "darktable",
+        "snapseed",
+        "photoscape",
+        "photopea"
+    ],
+    "softwareGeneracionIA": [
+        "midjourney\\s*v?\\d+",
+        "stablediffusion(?:\\s*v?[2-3]\\.?x)?",
+        "dall-e(?:\\s*2|\\s*3)?",
+        "nightcafe",
+        "deepai",
+        "runwayml",
+        "leonardo\\.ai",
+        "dreamstudio",
+        "artbreeder",
+        "craiyon",
+        "deepart",
+        "photoai",
+        "firefly",
+        "generative\\s*fill",
+        "ai\\s*image\\s*generator",
+        "rembg",
+        "vqgan",
+        "biggan",
+        "stylegan",
+        "deepdream"
+    ],
+    "softwareGenerico": [
+        "\\d+\\.\\d+\\.\\d+",
+        "iOS\\s*\\d+\\.\\d+",
+        "Android\\s*\\d+\\.\\d+"
+    ],
+    "sellosVerificacion": [
+        "MBH-\\d{3,7}",
+        "Dragon\\s*Seal\\s*v?\\d+",
+        "Verified\\s*by\\s*Dragon"
+    ]
+}

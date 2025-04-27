@@ -1,0 +1,725 @@
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+import winston from "winston";
+import WebSocket from "ws";
+import { fileURLToPath, pathToFileURL } from "url";
+
+// Importación de redes neuronales
+import RedAnalisisDefinicion from "./neuronas/analisisDeDefinicion.js";
+import RedAnalisisArtefactos from "./neuronas/analisisDeArtefactos.js";
+import RedAnalisisColor from "./neuronas/analisisDeColor.js";
+import RedAnalisisExif from "./neuronas/analisisDeExif.js";
+import RedAnalisisPantalla from "./neuronas/analisisDePantalla.js";
+import RedAnalisisResolucion from "./neuronas/analisisDeResolucion.js";
+import RedAnalisisFirmasDigitales from "./neuronas/analisisDeFirmasDigitales.js";
+import RedAnalisisTextura from "./neuronas/analisisDeTextura.js";
+
+// Configuración de rutas base
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DRAGON_BASE = "/var/www/ProyectoDragon";
+
+// Configuración de Winston
+const logger = winston.createLogger({
+    level: "info",
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.metadata(),
+        winston.format.json()
+    ),
+    defaultMeta: { 
+        service: 'analizador-imagen',
+        version: '2.3.0',
+        environment: process.env.NODE_ENV || 'production'
+    },
+    transports: [
+        new winston.transports.File({ 
+            filename: `${DRAGON_BASE}/logs/error.log`,
+            level: 'error',
+            maxsize: 5242880, // 5MB
+            maxFiles: 5
+        }),
+        new winston.transports.File({ 
+            filename: `${DRAGON_BASE}/logs/analizador.log`,
+            maxsize: 5242880,
+            maxFiles: 5
+        })
+    ]
+});
+
+// Configuración de consola para desarrollo
+if (process.env.NODE_ENV !== 'production') {
+    logger.add(new winston.transports.Console({
+        format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+        )
+    }));
+}
+
+// Sistema de monitorización DragonEye
+const DragonEye = {
+    ws: null,
+    reconnectAttempts: 0,
+    maxReconnectAttempts: 5,
+    reconnectInterval: 5000,
+
+    connect: () => {
+        try {
+            DragonEye.ws = new WebSocket('ws://localhost:8080');
+            
+            DragonEye.ws.on('open', () => {
+                logger.info('DragonEye conectado exitosamente');
+                DragonEye.reconnectAttempts = 0;
+            });
+
+            DragonEye.ws.on('error', (error) => {
+                logger.error(`Error de conexión DragonEye: ${error.message}`);
+                DragonEye.handleReconnect();
+            });
+
+            DragonEye.ws.on('close', () => {
+                logger.warn('Conexión DragonEye cerrada');
+                DragonEye.handleReconnect();
+            });
+
+        } catch (error) {
+            logger.error(`Error en configuración DragonEye: ${error.message}`);
+            DragonEye.handleReconnect();
+        }
+    },
+
+    handleReconnect: () => {
+        if (DragonEye.reconnectAttempts < DragonEye.maxReconnectAttempts) {
+            DragonEye.reconnectAttempts++;
+            setTimeout(() => {
+                logger.info(`Intento de reconexión DragonEye ${DragonEye.reconnectAttempts}/${DragonEye.maxReconnectAttempts}`);
+                DragonEye.connect();
+            }, DragonEye.reconnectInterval);
+        } else {
+            logger.error('Máximo de intentos de reconexión DragonEye alcanzado');
+        }
+    },
+
+    pulse: (metrics) => {
+        try {
+            if (DragonEye.ws?.readyState === WebSocket.OPEN) {
+                DragonEye.ws.send(JSON.stringify({
+                    type: "ANALYZER_PULSE",
+                    timestamp: new Date().toISOString(),
+                    service: "analizadorImagen",
+                    version: "2.3.0",
+                    metrics
+                }));
+            }
+        } catch (error) {
+            logger.error(`Error en DragonEye pulse: ${error.message}`);
+        }
+    }
+};
+
+// Inicializar DragonEye
+DragonEye.connect();
+// Función para cargar analizadores dinámicamente desde la carpeta correspondiente
+const cargarAnalizadores = async () => {
+    const startTime = process.hrtime();
+    const carpetaAnalizadores = path.join(__dirname, "analizadores");
+    const analizadores = [];
+
+    try {
+        // Verificación de existencia de carpeta
+        if (!fs.existsSync(carpetaAnalizadores)) {
+            logger.warn("Carpeta de analizadores no encontrada", {
+                path: carpetaAnalizadores,
+                timestamp: new Date().toISOString()
+            });
+            DragonEye.pulse({
+                event: "ANALYZERS_FOLDER_MISSING",
+                path: carpetaAnalizadores,
+                timestamp: new Date().toISOString()
+            });
+            return analizadores;
+        }
+
+        // Lectura y carga de analizadores
+        const archivos = fs.readdirSync(carpetaAnalizadores);
+        const promesasCarga = archivos
+            .filter(archivo => archivo.endsWith(".js"))
+            .map(async (archivo) => {
+                try {
+                    const rutaCompleta = path.join(carpetaAnalizadores, archivo);
+                    const moduloAnalizador = await import(pathToFileURL(rutaCompleta).href);
+
+                    if (moduloAnalizador.analizar && typeof moduloAnalizador.analizar === "function") {
+                        logger.info("Analizador cargado exitosamente", {
+                            analyzer: archivo,
+                            path: rutaCompleta,
+                            timestamp: new Date().toISOString()
+                        });
+
+                        DragonEye.pulse({
+                            event: "ANALYZER_LOADED",
+                            analyzer: archivo,
+                            timestamp: new Date().toISOString()
+                        });
+
+                        return {
+                            nombre: archivo.replace(".js", ""),
+                            funcion: moduloAnalizador.analizar
+                        };
+                    } else {
+                        throw new Error("El analizador no exporta la función 'analizar'");
+                    }
+                } catch (error) {
+                    logger.error("Error al cargar analizador individual", {
+                        analyzer: archivo,
+                        error: error.message,
+                        stack: error.stack,
+                        timestamp: new Date().toISOString()
+                    });
+                    return null;
+                }
+            });
+
+        // Carga paralela de analizadores con timeout de seguridad
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout en carga de analizadores')), 30000));
+
+        const resultadosCarga = await Promise.race([
+            Promise.all(promesasCarga),
+            timeoutPromise
+        ]);
+
+        // Filtrar analizadores válidos
+        analizadores.push(...resultadosCarga.filter(Boolean));
+
+        const [seconds, nanoseconds] = process.hrtime(startTime);
+        const loadTime = seconds * 1000 + nanoseconds / 1000000;
+
+        // Métricas de carga
+        DragonEye.pulse({
+            event: "ANALYZERS_LOAD_COMPLETE",
+            metrics: {
+                totalLoaded: analizadores.length,
+                loadTimeMs: loadTime,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+        logger.info("Carga de analizadores completada", {
+            loadedCount: analizadores.length,
+            timeMs: loadTime,
+            timestamp: new Date().toISOString()
+        });
+
+        return analizadores;
+
+    } catch (error) {
+        const [seconds, nanoseconds] = process.hrtime(startTime);
+        const loadTime = seconds * 1000 + nanoseconds / 1000000;
+
+        logger.error("Error crítico en carga de analizadores", {
+            error: error.message,
+            stack: error.stack,
+            timeMs: loadTime,
+            timestamp: new Date().toISOString()
+        });
+
+        DragonEye.pulse({
+            event: "ANALYZERS_LOAD_ERROR",
+            error: error.message,
+            metrics: {
+                timeMs: loadTime,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+        throw error;
+    }
+};
+/**
+ * Procesa y unifica los resultados de los analizadores y redes neuronales
+ * @param {Array} resultados - Resultados de los analizadores base
+ * @param {Object} resultadoDefinicion - Resultado de la red neuronal de definición
+ * @param {Object} resultadoArtefactos - Resultado de la red neuronal de artefactos
+ * @param {Object} resultadoColor - Resultado de la red neuronal de color
+ * @param {Object} resultadoExif - Resultado de la red neuronal de EXIF
+ * @param {Object} resultadoRedPantalla - Resultado de la red neuronal de pantalla
+ * @param {Object} resultadoRedResolucion - Resultado de la red neuronal de resolución
+ * @param {Object} resultadoRedFirmasDigitales - Resultado de la red neuronal de firmas
+ * @param {Object} resultadoRedTextura - Resultado de la red neuronal de textura
+ * @returns {Array} Resultados procesados y unificados
+ */
+const procesarResultados = (
+    resultados,
+    resultadoDefinicion,
+    resultadoArtefactos,
+    resultadoColor,
+    resultadoExif,
+    resultadoRedPantalla,
+    resultadoRedResolucion,
+    resultadoRedFirmasDigitales,
+    resultadoRedTextura
+) => {
+    const startTime = process.hrtime();
+    
+    try {
+        const procesados = resultados
+            .filter(({ nombre }) => nombre.toLowerCase() !== "log")
+            .map(({ nombre, resultado }) => {
+                // Estructura base del resultado
+                let resultadoProcesado = {
+                    analizador: resultado?.nombreAnalizador || nombre || "Analizador desconocido",
+                    descripcion: resultado?.descripcion || "Sin descripción disponible",
+                    puntuacion: resultado?.score ?? null,
+                    metadatos: resultado?.metadatos || {},
+                    mensaje: resultado?.detalles?.mensaje || "No se proporcionó valoración"
+                };
+
+                // Integración con redes neuronales según tipo de analizador
+                switch (nombre) {
+                    case "analizadorDefinicion":
+                        if (resultadoDefinicion) {
+                            resultadoProcesado = integrarRedDefinicion(resultadoProcesado, resultadoDefinicion);
+                        }
+                        break;
+
+                    case "analizadorArtefactos":
+                        if (resultadoArtefactos) {
+                            resultadoProcesado = integrarRedArtefactos(resultadoProcesado, resultadoArtefactos);
+                        }
+                        break;
+
+                    case "analizadorColor":
+                        if (resultadoColor) {
+                            resultadoProcesado = integrarRedColor(resultadoProcesado, resultadoColor);
+                        }
+                        break;
+
+                    case "analizadorExif":
+                        if (resultadoExif) {
+                            resultadoProcesado = integrarRedExif(resultadoProcesado, resultadoExif);
+                        }
+                        break;
+
+                    case "analizadorPantalla":
+                        if (resultadoRedPantalla) {
+                            resultadoProcesado = integrarRedPantalla(resultadoProcesado, resultadoRedPantalla);
+                        }
+                        break;
+
+                    case "analizadorResolucion":
+                        if (resultadoRedResolucion) {
+                            resultadoProcesado = integrarRedResolucion(resultadoProcesado, resultadoRedResolucion);
+                        }
+                        break;
+
+                    case "analizadorFirmasDigitales":
+                        if (resultadoRedFirmasDigitales) {
+                            resultadoProcesado = integrarRedFirmas(resultadoProcesado, resultadoRedFirmasDigitales);
+                        }
+                        break;
+
+                    case "analizadorTextura":
+                        if (resultadoRedTextura) {
+                            resultadoProcesado = integrarRedTextura(resultadoProcesado, resultadoRedTextura);
+                        }
+                        break;
+                }
+
+                DragonEye.pulse({
+                    event: "RESULT_PROCESSED",
+                    analyzer: nombre,
+                    metrics: {
+                        hasNeuralResult: resultadoProcesado.metadatos.redNeuronal ? true : false,
+                        finalScore: resultadoProcesado.puntuacion
+                    }
+                });
+
+                return resultadoProcesado;
+            });
+
+        const [seconds, nanoseconds] = process.hrtime(startTime);
+        const processingTime = seconds * 1000 + nanoseconds / 1000000;
+
+        // Métricas finales de procesamiento
+        DragonEye.pulse({
+            event: "RESULTS_PROCESSING_COMPLETE",
+            metrics: {
+                totalResults: procesados.length,
+                processingTimeMs: processingTime,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+        return procesados;
+
+    } catch (error) {
+        logger.error("Error en procesamiento de resultados", {
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        });
+        throw error;
+    }
+};
+
+// Funciones auxiliares de integración
+const integrarRedDefinicion = (base, resultadoRed) => ({
+    ...base,
+    puntuacion: calcularPuntuacionPonderada(base.puntuacion, resultadoRed.score, 0.6),
+    metadatos: {
+        ...base.metadatos,
+        redNeuronal: {
+            score: resultadoRed.score,
+            confianza: resultadoRed.confianza,
+            mensaje: resultadoRed.detalles?.mensaje
+        }
+    }
+});
+
+const integrarRedArtefactos = (base, resultadoRed) => ({
+    ...base,
+    puntuacion: calcularPuntuacionPonderada(base.puntuacion, resultadoRed.score, 0.7),
+    metadatos: {
+        ...base.metadatos,
+        redNeuronal: {
+            score: resultadoRed.score,
+            artefactosDetectados: resultadoRed.detalles?.artefactosDetectados,
+            mensaje: resultadoRed.detalles?.mensaje
+        }
+    }
+});
+
+// Continuación de las funciones de integración...
+
+const integrarRedColor = (base, resultadoRed) => ({
+    ...base,
+    puntuacion: calcularPuntuacionPonderada(base.puntuacion, resultadoRed.score, 0.6),
+    metadatos: {
+        ...base.metadatos,
+        redNeuronal: {
+            score: resultadoRed.score,
+            coloresDominantes: resultadoRed.metadatos?.coloresDominantes,
+            balanceCromático: resultadoRed.metadatos?.balanceCromático,
+            espacioColorValido: resultadoRed.metadatos?.espacioColorValido,
+            mensaje: resultadoRed.detalles?.mensaje
+        }
+    }
+});
+
+const integrarRedExif = (base, resultadoRed) => ({
+    ...base,
+    puntuacion: calcularPuntuacionPonderada(base.puntuacion, resultadoRed.score, 0.65),
+    metadatos: {
+        ...base.metadatos,
+        redNeuronal: {
+            score: resultadoRed.score,
+            dimensionesExif: resultadoRed.metadatos?.dimensionesExif,
+            software: resultadoRed.metadatos?.software,
+            fechaOriginal: resultadoRed.metadatos?.fechaOriginal,
+            fechaModificacion: resultadoRed.metadatos?.fechaModificacion,
+            mensaje: resultadoRed.detalles?.mensaje
+        }
+    }
+});
+
+const integrarRedPantalla = (base, resultadoRed) => ({
+    ...base,
+    puntuacion: calcularPuntuacionPonderada(base.puntuacion, resultadoRed.score, 0.6),
+    metadatos: {
+        ...base.metadatos,
+        redNeuronal: {
+            score: resultadoRed.score,
+            brilloPromedio: resultadoRed.metadatos?.brilloPromedio,
+            contrasteGlobal: resultadoRed.metadatos?.contrasteGlobal,
+            uniformidadIluminacion: resultadoRed.metadatos?.uniformidadIluminacion,
+            mensaje: resultadoRed.detalles?.mensaje
+        }
+    }
+});
+
+const integrarRedResolucion = (base, resultadoRed) => ({
+    ...base,
+    puntuacion: calcularPuntuacionPonderada(base.puntuacion, resultadoRed.score, 0.7),
+    metadatos: {
+        ...base.metadatos,
+        redNeuronal: {
+            score: resultadoRed.score,
+            resolucionOptima: resultadoRed.metadatos?.resolucionOptima,
+            factorEscalado: resultadoRed.metadatos?.factorEscalado,
+            nitidez: resultadoRed.metadatos?.nitidez,
+            mensaje: resultadoRed.detalles?.mensaje
+        }
+    }
+});
+
+const integrarRedFirmas = (base, resultadoRed) => ({
+    ...base,
+    puntuacion: calcularPuntuacionPonderada(base.puntuacion, resultadoRed.score, 0.65),
+    metadatos: {
+        ...base.metadatos,
+        redNeuronal: {
+            score: resultadoRed.score,
+            firmaValida: resultadoRed.metadatos?.firmaValida,
+            algoritmoFirma: resultadoRed.metadatos?.algoritmoFirma,
+            integridad: resultadoRed.metadatos?.integridad,
+            mensaje: resultadoRed.detalles?.mensaje
+        }
+    }
+});
+
+const integrarRedTextura = (base, resultadoRed) => ({
+    ...base,
+    puntuacion: calcularPuntuacionPonderada(base.puntuacion, resultadoRed.score, 0.7),
+    metadatos: {
+        ...base.metadatos,
+        redNeuronal: {
+            score: resultadoRed.score,
+            complejidadTextura: resultadoRed.metadatos?.complejidadTextura,
+            uniformidadTextura: resultadoRed.metadatos?.uniformidadTextura,
+            patronesRepetitivos: resultadoRed.metadatos?.patronesRepetitivos,
+            variacionLocal: resultadoRed.metadatos?.variacionLocal,
+            densidad: resultadoRed.metadatos?.densidad,
+            contrasteMicro: resultadoRed.metadatos?.contrasteMicro,
+            granularidad: resultadoRed.metadatos?.granularidad,
+            direccionalidad: resultadoRed.metadatos?.direccionalidad,
+            rugosidad: resultadoRed.metadatos?.rugosidad,
+            entropia: resultadoRed.metadatos?.entropia,
+            mensaje: resultadoRed.detalles?.mensaje
+        }
+    }
+});
+
+// Función auxiliar para cálculo de puntuación ponderada
+const calcularPuntuacionPonderada = (scoreBase, scoreRed, pesoRed) => {
+    const pesoBase = 1 - pesoRed;
+    return parseFloat((scoreBase * pesoBase + scoreRed * pesoRed).toFixed(2));
+};
+/**
+ * Función principal para analizar imágenes
+ * @param {string} filePath - Ruta al archivo de imagen a analizar
+ * @returns {Object} Resultado del análisis
+ */
+export const analizarImagen = async (filePath) => {
+    const startTime = process.hrtime();
+    const sessionId = crypto.randomUUID();
+    
+    try {
+        logger.info("Iniciando análisis de imagen", {
+            sessionId,
+            file: path.basename(filePath),
+            timestamp: new Date().toISOString()
+        });
+
+        DragonEye.pulse({
+            event: "ANALYSIS_START",
+            sessionId,
+            file: path.basename(filePath)
+        });
+
+        // Validación inicial
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`Archivo no encontrado: ${filePath}`);
+        }
+
+        // Carga de analizadores con timeout
+        const timeoutAnalizadores = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout en carga de analizadores')), 30000));
+
+        const analizadores = await Promise.race([
+            cargarAnalizadores(),
+            timeoutAnalizadores
+        ]);
+
+        if (!analizadores || analizadores.length === 0) {
+            throw new Error("No se encontraron analizadores disponibles");
+        }
+
+        // Ejecución paralela de analizadores
+        const timeoutAnalisis = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout en análisis de imagen')), 180000));
+
+        const resultadosAnalizadores = await Promise.race([
+            Promise.all(
+                analizadores.map(async ({ nombre, funcion }) => {
+                    const analizerStartTime = process.hrtime();
+                    try {
+                        const resultado = await funcion(filePath);
+                        const [s, ns] = process.hrtime(analizerStartTime);
+                        
+                        DragonEye.pulse({
+                            event: "ANALYZER_COMPLETE",
+                            sessionId,
+                            analyzer: nombre,
+                            metrics: {
+                                duration: s * 1000 + ns / 1000000,
+                                score: resultado?.score
+                            }
+                        });
+
+                        return { nombre, resultado };
+                    } catch (error) {
+                        logger.error(`Error en analizador ${nombre}`, {
+                            sessionId,
+                            analyzer: nombre,
+                            error: error.message,
+                            stack: error.stack
+                        });
+                        return { 
+                            nombre, 
+                            resultado: { 
+                                error: error.message,
+                                score: 0,
+                                detalles: { mensaje: `Error en análisis: ${error.message}` }
+                            } 
+                        };
+                    }
+                })
+            ),
+            timeoutAnalisis
+        ]);
+
+        // Preparación de datos para redes neuronales
+        const datosParaRedes = prepararDatosRedes(resultadosAnalizadores);
+
+        // Análisis con redes neuronales (paralelo)
+        const [
+            resultadoDefinicion,
+            resultadoArtefactos,
+            resultadoColor,
+            resultadoExif,
+            resultadoPantalla,
+            resultadoResolucion,
+            resultadoFirmasDigitales,
+            resultadoTextura
+        ] = await Promise.all([
+            new RedAnalisisDefinicion().analizar(datosParaRedes.definicion).catch(manejarErrorRed),
+            new RedAnalisisArtefactos().analizar(datosParaRedes.artefactos).catch(manejarErrorRed),
+            new RedAnalisisColor().analizar(datosParaRedes.color).catch(manejarErrorRed),
+            new RedAnalisisExif().analizar(datosParaRedes.exif).catch(manejarErrorRed),
+            new RedAnalisisPantalla().analizar(datosParaRedes.pantalla).catch(manejarErrorRed),
+            new RedAnalisisResolucion().analizar(datosParaRedes.resolucion).catch(manejarErrorRed),
+            new RedAnalisisFirmasDigitales().analizar(datosParaRedes.firmas).catch(manejarErrorRed),
+            new RedAnalisisTextura().analizar(datosParaRedes.textura).catch(manejarErrorRed)
+        ]);
+
+        // Procesamiento final de resultados
+        const resultadosProcesados = procesarResultados(
+            resultadosAnalizadores,
+            resultadoDefinicion,
+            resultadoArtefactos,
+            resultadoColor,
+            resultadoExif,
+            resultadoPantalla,
+            resultadoResolucion,
+            resultadoFirmasDigitales,
+            resultadoTextura
+        );
+
+        const evaluacionFinal = calcularEvaluacionFinal(resultadosProcesados);
+        const [seconds, nanoseconds] = process.hrtime(startTime);
+        const totalTime = seconds * 1000 + nanoseconds / 1000000;
+
+        // Construcción de respuesta
+        const respuestaFinal = {
+            sessionId,
+            estado: "completado",
+            tiempoProcesamientoMs: totalTime,
+            timestamp: new Date().toISOString(),
+            resultado: {
+                scoreGlobal: evaluacionFinal.scoreGlobal,
+                confianza: evaluacionFinal.confianza,
+                decision: evaluacionFinal.decision,
+                metricas: {
+                    tiempoTotal: totalTime,
+                    analizadoresEjecutados: resultadosAnalizadores.length,
+                    redesNeuronalesEjecutadas: 8
+                },
+                resultadosDetallados: resultadosProcesados
+            }
+        };
+
+        // Métricas finales
+        DragonEye.pulse({
+            event: "ANALYSIS_COMPLETE",
+            sessionId,
+            metrics: {
+                totalTimeMs: totalTime,
+                scoreGlobal: evaluacionFinal.scoreGlobal,
+                confianza: evaluacionFinal.confianza
+            }
+        });
+
+        logger.info("Análisis completado exitosamente", {
+            sessionId,
+            timeMs: totalTime,
+            file: path.basename(filePath),
+            score: evaluacionFinal.scoreGlobal
+        });
+
+        return respuestaFinal;
+
+    } catch (error) {
+        const [seconds, nanoseconds] = process.hrtime(startTime);
+        const totalTime = seconds * 1000 + nanoseconds / 1000000;
+
+        logger.error("Error crítico en análisis", {
+            sessionId,
+            error: error.message,
+            stack: error.stack,
+            timeMs: totalTime,
+            file: path.basename(filePath)
+        });
+
+        DragonEye.pulse({
+            event: "ANALYSIS_ERROR",
+            sessionId,
+            error: error.message,
+            metrics: {
+                totalTimeMs: totalTime
+            }
+        });
+
+        return {
+            sessionId,
+            estado: "error",
+            error: "Error durante el análisis",
+            detalles: error.message,
+            tiempoProcesamientoMs: totalTime,
+            timestamp: new Date().toISOString()
+        };
+    }
+};
+
+// Funciones auxiliares finales
+const manejarErrorRed = (error) => ({
+    score: 0,
+    confianza: 0,
+    detalles: {
+        error: error.message,
+        mensaje: "Error en procesamiento de red neuronal"
+    }
+});
+
+const calcularEvaluacionFinal = (resultados) => {
+    const scores = resultados.map(r => r.puntuacion).filter(Boolean);
+    const scoreGlobal = scores.length ? 
+        parseFloat((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)) : 0;
+    
+    return {
+        scoreGlobal,
+        confianza: calcularConfianza(resultados),
+        decision: scoreGlobal >= 7.5 ? "ACEPTADO" : "RECHAZADO"
+    };
+};
+
+const calcularConfianza = (resultados) => {
+    const confianzasValidas = resultados
+        .filter(r => r.metadatos?.redNeuronal?.confianza)
+        .map(r => r.metadatos.redNeuronal.confianza);
+    
+    return confianzasValidas.length ?
+        parseFloat((confianzasValidas.reduce((a, b) => a + b, 0) / confianzasValidas.length).toFixed(2)) : 0;
+};

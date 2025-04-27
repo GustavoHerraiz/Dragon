@@ -1,0 +1,8 @@
+2025-03-22T12:22:03.327Z [ERROR]: unhandledRejection: logger is not defined
+ReferenceError: logger is not defined
+    at RedAnalisisDefinicion.analizar (file:///var/www/ProyectoDragon/backend/servicios/neuronas/analisisDeDefinicion.js:251:9)
+    at analizar (file:///var/www/ProyectoDragon/backend/servicios/analizadores/analizadorDefinicion.js:81:34)
+    at async file:///var/www/ProyectoDragon/backend/servicios/analizadorImagen.js:142:35
+    at async Promise.all (index 2)
+    at async analizarImagen (file:///var/www/ProyectoDragon/backend/servicios/analizadorImagen.js:140:28)
+    at async file:///var/www/ProyectoDragon/backend/server.js:202:27
