@@ -1,4 +1,19 @@
-backend/node_modules/
-*.tgz
-*.onnx
-*.so
+# Dependencias de Node.js
+node_modules/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de bloqueo
+*.lock
+
+# Sistema operativo y entornos
+.DS_Store
+Thumbs.db
+
+# Entornos locales
+.env
