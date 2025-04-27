@@ -1,0 +1,15 @@
+{
+  "name": "sensor-test",
+  "version": "1.0.0",
+  "description": "Pruebas de sensor unidireccional con Redis",
+  "main": "archivoSensor.js",
+  "type": "module",
+  "scripts": {
+    "start": "node archivoSensor.js",
+    "test": "node testSensor.js"
+  },
+  "dependencies": {
+    "redis": "^4.7.0",
+    "winston": "^3.17.0"
+  }
+}

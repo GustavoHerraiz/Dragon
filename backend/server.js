@@ -1,3 +1,4 @@
+ import mongoose from "mongoose";
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -6,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from 'uuid';
 import conectarDB from "./config/database.js";
+import ResourceManager from './utils/resourceManager.js';
 import authRoutes from "./rutas/auth.js";
 import archivosRoutes from "./rutas/archivos.js";
 import { analizarImagen } from "./servicios/analizadorImagen.js";
@@ -13,8 +15,21 @@ import winston from "winston";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import Usuario from "./modelos/Usuario.js";
+import './servicios/neuronas/servidorCentral.js';
+import SensorFactory from './utils/SensorFactory.js';
+import { exec } from 'child_process';
 
+
+
+
+
+console.log('Servidor central iniciado desde server.js.');
+
+
+// Configuración de mongoose
+mongoose.set('strictQuery', true);
 dotenv.config();
+mongoose.set('strictQuery', true);
 const app = express();
 const PORT = process.env.PORT || 3000;
 console.log("📌 MONGODB_URI:", process.env.MONGODB_URI);
@@ -40,6 +55,32 @@ const logger = winston.createLogger({
     ]
 });
 
+// Después de la configuración de Winston pero antes de MongoDB
+import Redis from 'ioredis';
+export const redis = new Redis();  // Añadimos 'export'
+
+redis.on('ready', async () => {
+    logger.info('?? Redis conectado para DragonSensor.');
+
+    try {
+        // Inicializar SensorFactory
+        logger.info('?? Inicializando SensorFactory...');
+        await SensorFactory.getInstance().initializeAll();
+        logger.info('? SensorFactory inicializado correctamente.');
+    } catch (error) {
+        // Manejar errores sin detener el flujo
+        logger.error(`?? Error inicializando SensorFactory: ${error.message}`, {
+            stack: error.stack
+        });
+
+        // Continuar con el servidor, pero registra que la inicializaci�n fall�
+        logger.warn('?? El servidor continuar� funcionando, pero SensorFactory no est� completamente inicializado.');
+    }
+});
+redis.on('error', (err) => {
+    logger.error('🔴 Error en conexión Redis para DragonSensor');
+});
+
 // 📌 Conectar a la base de datos
 conectarDB()
     .then(() => logger.info("🟢 Conectado a MongoDB Atlas"))
@@ -47,7 +88,7 @@ conectarDB()
 
 // 📌 Configurar CORS para aceptar peticiones desde el frontend
 app.use(cors({
-  origin: "https://www.bladecorporation.net", // ⚠️ Asegúrate de que es el dominio correcto
+  origin: "https://www.bladecorporation.net", // � ️ Asegúrate de que es el dominio correcto
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }))
@@ -136,7 +177,6 @@ app.post("/subir-publico", upload.array("archivos", 5), (req, res) => {
     }
 });
 
-// 📌 Nueva ruta para entrenar el sistema
 app.post("/guardar-entrenamiento", upload.single("archivo"), async (req, res) => {
     try {
         if (!req.file) {
@@ -148,10 +188,9 @@ app.post("/guardar-entrenamiento", upload.single("archivo"), async (req, res) =>
             return res.status(400).json({ error: "Etiqueta no válida." });
         }
 
-        const destino =
-            etiqueta === "humano"
-                ? "/var/www/ProyectoDragon/backend/servicios/entrenamiento/humanos"
-                : "/var/www/ProyectoDragon/backend/servicios/entrenamiento/ai";
+        const destino = etiqueta === "humano"
+            ? "/var/www/ProyectoDragon/backend/servicios/entrenamiento/humanos"
+            : "/var/www/ProyectoDragon/backend/servicios/entrenamiento/ai";
 
         const filePath = path.join(destino, req.file.originalname);
 
@@ -167,7 +206,36 @@ app.post("/guardar-entrenamiento", upload.single("archivo"), async (req, res) =>
                 const resultadoAnalisis = await analizarImagen(filePath);
                 logger.info(`📊 Resultado del análisis: ${JSON.stringify(resultadoAnalisis)}`);
 
-                // Redirigir al usuario a analizar-imagen-publico.html con los resultados
+                // 📌 Agregar los datos al archivo de entrenamiento
+                const trainingEntry = {
+                    input: resultadoAnalisis.resultadoDetallado || [], // Entradas procesadas
+                    output: etiqueta === "humano" ? [1] : [0] // Etiqueta binaria
+                };
+
+                try {
+                    const rawData = fs.readFileSync('./datosRedes.json');
+                    const trainingData = JSON.parse(rawData);
+                    trainingData.push(trainingEntry);
+                    fs.writeFileSync('./datosRedes.json', JSON.stringify(trainingData, null, 2));
+                    logger.info('✅ Datos registrados en datosRedes.json');
+                } catch (error) {
+                    logger.error(`🔴 Error al registrar los datos: ${error.message}`);
+                    return res.status(500).json({ error: "Error al registrar los datos para entrenamiento." });
+                }
+
+                // 📌 Disparar el entrenamiento automáticamente
+                exec('node /var/www/ProyectoDragon/backend/servicios/neuronas/entrenarAnalisisDeDefinicion.js', (err, stdout, stderr) => {
+
+    if (err) {
+        logger.error(`🔴 Error durante el entrenamiento: ${err.message}`);
+        return res.status(500).json({ error: "Error al entrenar la red neuronal." });
+    }
+    logger.info('✅ Entrenamiento completado exitosamente.');
+    logger.info(`📄 Output: ${stdout}`);
+});
+
+
+                // Redirigir al usuario con los resultados del análisis
                 res.send(`
                     <script>
                         localStorage.setItem('resultadoAnalisis', JSON.stringify(${JSON.stringify(resultadoAnalisis)}));
@@ -184,6 +252,7 @@ app.post("/guardar-entrenamiento", upload.single("archivo"), async (req, res) =>
         res.status(500).json({ error: "Error en el servidor." });
     }
 });
+
 
 
 
